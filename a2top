@@ -1,0 +1,83 @@
+#!/bin/bash
+
+parse_scoreboard() {
+	WAIT=0
+	START=0
+	READ=0
+	SEND=0
+	KEEP=0
+	DNS=0
+	CLOSE=0
+	LOG=0
+	GRACE=0
+	IDLE=0
+	NONE=0
+
+	if [[ $1 =~ ^Scoreboard:\ ([_SRWKDCLGI.]+)$ ]]; then
+		PROCESSES="${BASH_REMATCH[1]}"
+
+		while IFS= read -r -n1 char
+		do
+			#echo "$char"
+			case $char in
+				_ )
+					let WAIT=WAIT+1
+					;;
+				S )
+					let START++
+					;;
+				R )
+					let READ++
+					;;
+				W )
+					let SEND++
+					;;
+				K )
+					let KEEP++
+					;;
+				D )
+					let DNS++
+					;;
+				C )
+					let CLOSE++
+					;;
+				L )
+					let LOG++
+					;;
+				G )
+					let GRACE++
+					;;
+				I )
+					let IDLE=IDLE+1
+					;;
+				. )
+					let NONE++
+					;;
+			esac
+		done < <(echo "$PROCESSES")
+	fi
+
+	echo -e "WAITING:\t$WAIT"
+	echo -e "STARTING:\t$START"
+	echo -e "READING:\t$READ"
+	echo -e "SENDING:\t$SEND"
+	echo -e "KEEP ALIVE:\t$KEEP"
+	echo -e "DNS LOOKUP:\t$DNS"
+	echo -e "CLOSING:\t$CLOSE"
+	echo -e "LOGGING:\t$LOG"
+	echo -e "GRACEFUL:\t$GRACE"
+	echo -e "IDLE:\t\t$IDLE"
+	echo -e "NONE:\t\t$NONE"
+}
+
+URL="http://localhost/server-status?auto"
+
+curl -s "$URL" |
+while IFS= read -r line; do
+	if [[ $line =~ ^Scoreboard ]];
+	then
+		parse_scoreboard "$line"
+	else
+		echo "$line"
+	fi
+done
