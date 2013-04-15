@@ -1,4 +1,32 @@
 #!/bin/bash
+round() {
+	echo $( printf %.$2f $(echo "scale=$2;(((10^$2)*$1)+0.5)/(10^$2)" | bc) )
+}
+
+print_many() {
+	str=$1
+	num=$2
+	if [ "$num" -gt "0" ]
+	then
+		printf -v outstr "%-${num}s" "$str"
+		echo -n "${outstr// /$str}"
+	fi
+}
+
+print_bar() {
+	MAXWIDTH=80
+	VAL=$1
+	TOTAL=$2
+
+	BARLENGTH=`echo "scale=2;$VAL / $TOTAL * $MAXWIDTH" | bc -l`
+	BARLENGTH=`round $BARLENGTH 0`
+	let FILLLENGTH=MAXWIDTH-BARLENGTH
+
+	echo -n "["
+	print_many "#" $BARLENGTH
+	print_many "." $FILLLENGTH
+	echo "]"
+}
 
 parse_scoreboard() {
 	WAIT=0
@@ -21,7 +49,7 @@ parse_scoreboard() {
 			#echo "$char"
 			case $char in
 				_ )
-					let WAIT=WAIT+1
+					let WAIT++
 					;;
 				S )
 					let START++
@@ -48,7 +76,7 @@ parse_scoreboard() {
 					let GRACE++
 					;;
 				I )
-					let IDLE=IDLE+1
+					let IDLE=++
 					;;
 				. )
 					let NONE++
@@ -57,17 +85,19 @@ parse_scoreboard() {
 		done < <(echo "$PROCESSES")
 	fi
 
-	echo -e "WAITING:\t$WAIT"
-	echo -e "STARTING:\t$START"
-	echo -e "READING:\t$READ"
-	echo -e "SENDING:\t$SEND"
-	echo -e "KEEP ALIVE:\t$KEEP"
-	echo -e "DNS LOOKUP:\t$DNS"
-	echo -e "CLOSING:\t$CLOSE"
-	echo -e "LOGGING:\t$LOG"
-	echo -e "GRACEFUL:\t$GRACE"
-	echo -e "IDLE:\t\t$IDLE"
-	echo -e "NONE:\t\t$NONE"
+	let ALL=WAIT+START+READ+SEND+KEEP+DNS+CLOSE+LOG+GRACE+IDLE+NONE
+
+	echo -e "WAITING:\t`print_bar $WAIT $ALL`"
+	echo -e "STARTING:\t`print_bar $START $ALL`"
+	echo -e "READING:\t`print_bar $READ $ALL`"
+	echo -e "SENDING:\t`print_bar $SEND $ALL`"
+	echo -e "KEEP ALIVE:\t`print_bar $KEEP $ALL`"
+	echo -e "DNS LOOKUP:\t`print_bar $DNS $ALL`"
+	echo -e "CLOSING:\t`print_bar $CLOSE $ALL`"
+	echo -e "LOGGING:\t`print_bar $LOG $ALL`"
+	echo -e "GRACEFUL:\t`print_bar $GRACE $ALL`"
+	echo -e "IDLE:\t\t`print_bar $IDLE $ALL`"
+	echo -e "NONE:\t\t`print_bar $NONE $ALL`"
 }
 
 URL="http://localhost/server-status?auto"
